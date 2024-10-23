@@ -9,19 +9,26 @@ write_log() {
     local log_file=$1
     
     if [[ ! -f $log_file ]]; then
-        echo "disk_usage,inodes_free" > "$log_file"
+        echo "timestamp,disk_usage,inodes_free" > "$log_file"
     fi
     
-    echo "$(df / | tail -1 | awk '{print $5}' | sed 's/%//'),$(df -i / | tail -1 | awk '{print $4}')" >> "$log_file"
+    echo "$(date +"%H%M%S"),$(df / | tail -1 | awk '{print $5}' | sed 's/%//'),$(df -i / | tail -1 | awk '{print $4}')" >> "$log_file"
 }
 
 monitor() {
+    cur_date=0
+    cur_time=$1
     while true; do   
+	old_date=$cur_date
     	cur_date=$(date +"%Y%m%d")
-	timestamp="${cur_date}_$1"
-    	local log_file="${LOG_DIR}/disk_usage_${timestamp}.csv" 
+	if [[ $old_date -ne $cur_date ]]
+	then
+		cur_time=$(date +"%H%M%S")
+	fi
+	timestamp="${cur_date}_$cur_time"
+    	local log_file="${LOG_DIR}/disk_usage_${timestamp}.csv"  
         write_log $log_file
-        sleep 1 # Пауза в 60 секунд
+        sleep 1
     done
 }
 
