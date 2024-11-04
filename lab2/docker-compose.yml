@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ansible:
+    build: ansible/
+    # image: my-ansible-image
+    volumes:
+      - app_data:/app_data
+      # - /var/run/docker.sock:/var/run/docker.sock
+      # - ./ansible:/ansible2
+    depends_on:
+      - app
+    ports:
+      - 80:80
+  
+  app:
+    build: web_server/
+    # image: app-source-image
+    volumes:
+      - app_data:/app_data
+
+volumes:
+  app_data:
