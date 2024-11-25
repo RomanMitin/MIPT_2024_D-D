@@ -1,0 +1,88 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Download Project from GitHub') {
+            steps {
+                git url: 'git@github.com:RomanMitin/Stockfish.git', credentialsId: '667bf583-e1c2-450d-a659-dceaed2a9099'
+            }
+        }
+
+        stage('Check for Changes') {
+            steps {
+                script {
+                    dir('.') {
+                        def filesExist = fileExists('.')
+                        
+                        if (!filesExist) {
+                            currentBuild.result = 'FAILURE'
+                            error("Working directory is empty. Aborting the pipeline.")
+                        }
+
+                        def lastRevision = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                        echo "Last revision: ${lastRevision}"
+
+                        def remoteRevision = sh(returnStdout: true, script: 'git ls-remote origin HEAD | cut -f1').trim()
+                        echo "Remote revision: ${remoteRevision}"
+
+                        if (lastRevision != remoteRevision) {
+                            currentBuild.result = 'SUCCESS'
+                            echo "Changes detected, continuing the pipeline."
+                        } else {
+                            currentBuild.result = 'ABORTED'
+                            error("No changes detected, aborting the pipeline.")
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Analizy source code') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
+            steps {
+                sh 'cppcheck -j 8 --std=c++17 --platform=unix64 ./src'
+            }
+        }
+
+        stage('Build Project') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
+            steps {
+                sh 'cd src && make -j 4 profile-build ARCH=x86-64'
+            }
+        }
+
+        stage('Run Tests') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
+            steps {
+                sh 'cd ./tests && python instrumented.py --valgrind --none ../src/stockfish'
+            }
+        }
+
+        stage('Generate Allure Report') {
+            when {
+                expression { currentBuild.currentResult == 'SUCCESS' }
+            }
+            steps {
+                allure includeProperties:
+                     false,
+                     jdk: '',
+                     results: [[path: 'build/allure-results']]
+            }
+        }
+        
+        stage('Build docker image') {
+        when {
+            expression { currentBuild.currentResult == 'SUCCESS' }
+        }
+        steps {
+            sh 'docker build -t pipeline_docker_image .'
+            }
+        }
+    }
+}

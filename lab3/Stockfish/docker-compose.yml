@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  stockfish:
+    build: .
+    volumes:
+      - stockfish_binary:/stockfish_binary
+    depends_on:
+      - app
+
+  app:
+    build: ChessAI-StockfishGUI/
+    volumes:
+      - stockfish_binary:/stockfish_binary
+      - /tmp/.X11-unix:/tmp/.X11-unix
+
+volumes:
+  stockfish_binary:
