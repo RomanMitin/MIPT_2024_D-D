@@ -1,8 +1,7 @@
 all:
   hosts:
     nginx_container:
-      ansible_host: 172.17.0.2
+      ansible_host: 10.5.0.6
       ansible_connection: ssh
       ansible_ssh_user: root
       ansible_ssh_pass: docker
-    # ansible_ssh_private_key_file: /home/roman/.ssh/id_rsa

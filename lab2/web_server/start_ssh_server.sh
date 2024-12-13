@@ -5,4 +5,4 @@ service ssh start
 
 cp -r /server/* /app_data 
 
-sleep 10
+tail -f /dev/null

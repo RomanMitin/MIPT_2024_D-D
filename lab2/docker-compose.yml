@@ -3,21 +3,24 @@ version: '3.8'
 services:
   ansible:
     build: ansible/
-    # image: my-ansible-image
-    volumes:
-      - app_data:/app_data
-      # - /var/run/docker.sock:/var/run/docker.sock
-      # - ./ansible:/ansible2
     depends_on:
       - app
-    ports:
-      - 80:80
+    networks:
+      my_net:
+        ipv4_address: 10.5.0.5
   
   app:
     build: web_server/
-    # image: app-source-image
-    volumes:
-      - app_data:/app_data
+    ports:
+      - 80:80
+    networks:
+      my_net:
+        ipv4_address: 10.5.0.6
 
-volumes:
-  app_data:
+networks:
+  my_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

@@ -1,12 +1,53 @@
 ---
-- hosts: 127.0.0.1
-  become: yes
+- hosts: nginx_container
+  become: true
   tasks:
-  - name: "Install nginx via apt"
-    ansible.builtin.apt:
-      name: "nginx"
-      state: "latest"
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
-  - name: deploying server
-    local_action: command bash /ansible/deploy_web_server.sh
-...
+    - name: Install required packages
+      apt:
+        pkg:
+          - git
+          - gcc
+          - make
+          - libpcre3-dev
+          - python3
+          - python3-pip
+          - nginx
+
+    - name: Clone Nginx repository
+      git:
+        repo: https://github.com/nginx/nginx.git
+        dest: /server/nginx
+        depth: 1
+
+    - name: Configure Nginx
+      command: ./auto/configure --without-http_rewrite_module
+      args:
+        chdir: /server/nginx
+
+    - name: Build Nginx
+      command: make
+      args:
+        chdir: /server/nginx
+
+    - name: Install Flask
+      pip:
+        name: flask
+
+    - name: Copy nginx config file
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+
+    - name: Run Flask application
+      shell: |
+        cd /server
+        nohup python3 web_server.py > /dev/null 2>&1 &
